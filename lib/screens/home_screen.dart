@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/estudante_service.dart';
 import '../services/tarefa_service.dart';
+import '../services/token_storage.dart';
+import 'login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -58,8 +60,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _carregarTarefas(String estudanteId) async {
     setState(() => _carregando = true);
+
     try {
       final tarefas = await _tarefaService.listarTarefasDoDia(estudanteId);
+
       setState(() {
         _tarefas = tarefas;
         _carregando = false;
@@ -75,6 +79,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _concluirTarefa(String tarefaId) async {
     try {
       await _tarefaService.concluirTarefa(tarefaId);
+
       if (_estudanteSelecionado != null) {
         await _carregarTarefas(_estudanteSelecionado!['id']);
       }
@@ -84,6 +89,16 @@ class _HomeScreenState extends State<HomeScreen> {
           SnackBar(content: Text('Erro ao concluir: $e')),
         );
       }
+    }
+  }
+
+  Future<void> _sair() async {
+    await TokenStorage.apagarToken();
+    if (mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
     }
   }
 
@@ -113,25 +128,43 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_estudanteSelecionado != null
-            ? 'Rotina de ${_estudanteSelecionado!['nome']}'
-            : 'Minhas Tarefas'),
+        title: Text(
+          _estudanteSelecionado != null
+              ? 'Rotina de ${_estudanteSelecionado!['nome']}'
+              : 'Minhas Tarefas',
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _carregarEstudantes,
           ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _sair,
+            tooltip: 'Sair',
+          ),
         ],
       ),
       body: _carregando
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
           : _erro != null
-              ? Center(child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Text(_erro!, textAlign: TextAlign.center),
-                ))
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      _erro!,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
               : _tarefas.isEmpty
-                  ? const Center(child: Text('Nenhuma tarefa prevista para hoje.'))
+                  ? const Center(
+                      child: Text(
+                        'Nenhuma tarefa prevista para hoje.',
+                      ),
+                    )
                   : ListView.builder(
                       padding: const EdgeInsets.all(16),
                       itemCount: _tarefas.length,
@@ -152,11 +185,15 @@ class _HomeScreenState extends State<HomeScreen> {
                               tarefa['titulo'],
                               style: const TextStyle(fontSize: 18),
                             ),
-                            subtitle: Text(tarefa['horario_previsto']),
+                            subtitle: Text(
+                              tarefa['horario_previsto'],
+                            ),
                             trailing: concluida
                                 ? null
                                 : ElevatedButton(
-                                    onPressed: () => _concluirTarefa(tarefa['tarefa_id']),
+                                    onPressed: () => _concluirTarefa(
+                                      tarefa['tarefa_id'],
+                                    ),
                                     child: const Text('Concluí'),
                                   ),
                           ),
