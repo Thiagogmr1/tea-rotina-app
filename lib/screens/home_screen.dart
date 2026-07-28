@@ -107,6 +107,11 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _selecionarEstudante(Map<String, dynamic> estudante) async {
+    setState(() => _estudanteSelecionado = estudante);
+    await _carregarTarefas(estudante['id']);
+  }
+
   Future<void> _sair() async {
     await TokenStorage.apagarToken();
     if (mounted) {
@@ -149,6 +154,33 @@ class _HomeScreenState extends State<HomeScreen> {
               : 'Minhas Tarefas',
         ),
         actions: [
+          if (_estudantes.length > 1)
+            PopupMenuButton<Map<String, dynamic>>(
+              icon: const Icon(Icons.people),
+              tooltip: 'Trocar estudante',
+              onSelected: _selecionarEstudante,
+              itemBuilder: (context) => _estudantes.map((estudante) {
+                final selecionado =
+                    estudante['id'] == _estudanteSelecionado?['id'];
+
+                return PopupMenuItem<Map<String, dynamic>>(
+                  value: estudante,
+                  child: Row(
+                    children: [
+                      Icon(
+                        selecionado
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_unchecked,
+                        size: 20,
+                        color: selecionado ? Colors.teal : Colors.grey,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(estudante['nome']),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _carregarEstudantes,
