@@ -3,6 +3,7 @@ import '../services/estudante_service.dart';
 import '../services/tarefa_service.dart';
 import '../services/token_storage.dart';
 import 'login_screen.dart';
+import 'vincular_codigo_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -38,7 +39,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (estudantes.isEmpty) {
         setState(() {
-          _erro = 'Nenhum estudante vinculado à sua conta ainda.';
+          _estudantes = [];
+          _estudanteSelecionado = null;
+          _tarefas = [];
           _carregando = false;
         });
         return;
@@ -89,6 +92,18 @@ class _HomeScreenState extends State<HomeScreen> {
           SnackBar(content: Text('Erro ao concluir: $e')),
         );
       }
+    }
+  }
+
+  Future<void> _abrirTelaDeCodigo() async {
+    final sucesso = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => const VincularCodigoScreen(),
+      ),
+    );
+
+    if (sucesso == true) {
+      _carregarEstudantes();
     }
   }
 
@@ -149,57 +164,85 @@ class _HomeScreenState extends State<HomeScreen> {
           ? const Center(
               child: CircularProgressIndicator(),
             )
-          : _erro != null
+          : _estudantes.isEmpty && _erro == null
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-                    child: Text(
-                      _erro!,
-                      textAlign: TextAlign.center,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.link_off,
+                          size: 64,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Nenhum estudante vinculado ainda.',
+                          style: TextStyle(fontSize: 18),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          onPressed: _abrirTelaDeCodigo,
+                          icon: const Icon(Icons.qr_code),
+                          label: const Text('Inserir código de vínculo'),
+                        ),
+                      ],
                     ),
                   ),
                 )
-              : _tarefas.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'Nenhuma tarefa prevista para hoje.',
+              : _erro != null
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          _erro!,
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _tarefas.length,
-                      itemBuilder: (context, index) {
-                        final tarefa = _tarefas[index];
-                        final status = tarefa['status'] as String;
-                        final concluida = status == 'concluida';
-
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          child: ListTile(
-                            leading: Icon(
-                              _iconeDoStatus(status),
-                              color: _corDoStatus(status),
-                              size: 36,
-                            ),
-                            title: Text(
-                              tarefa['titulo'],
-                              style: const TextStyle(fontSize: 18),
-                            ),
-                            subtitle: Text(
-                              tarefa['horario_previsto'],
-                            ),
-                            trailing: concluida
-                                ? null
-                                : ElevatedButton(
-                                    onPressed: () => _concluirTarefa(
-                                      tarefa['tarefa_id'],
-                                    ),
-                                    child: const Text('Concluí'),
-                                  ),
+                  : _tarefas.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'Nenhuma tarefa prevista para hoje.',
                           ),
-                        );
-                      },
-                    ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _tarefas.length,
+                          itemBuilder: (context, index) {
+                            final tarefa = _tarefas[index];
+                            final status = tarefa['status'] as String;
+                            final concluida = status == 'concluida';
+
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              child: ListTile(
+                                leading: Icon(
+                                  _iconeDoStatus(status),
+                                  color: _corDoStatus(status),
+                                  size: 36,
+                                ),
+                                title: Text(
+                                  tarefa['titulo'],
+                                  style: const TextStyle(fontSize: 18),
+                                ),
+                                subtitle: Text(
+                                  tarefa['horario_previsto'],
+                                ),
+                                trailing: concluida
+                                    ? null
+                                    : ElevatedButton(
+                                        onPressed: () => _concluirTarefa(
+                                          tarefa['tarefa_id'],
+                                        ),
+                                        child: const Text('Concluí'),
+                                      ),
+                              ),
+                            );
+                          },
+                        ),
     );
   }
 }
